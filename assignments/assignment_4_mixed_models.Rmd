@@ -58,7 +58,8 @@ Compare the model coefficients and the confidence intervals observed in this ass
 Read the datasets used in this assignment. Pay attention to the extensions of the datafiles.
 
 ```{r}
-
+library(tidyverse)
+data_A <- read_csv("data/datafile_A.csv")
 ```
 
 ## Exploratory data analysis
