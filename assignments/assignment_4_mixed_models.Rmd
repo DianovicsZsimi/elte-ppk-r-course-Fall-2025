@@ -59,7 +59,15 @@ Read the datasets used in this assignment. Pay attention to the extensions of th
 
 ```{r}
 library(tidyverse)
-data_A <- read_csv("data/datafile_A.csv")
+library(here)
+library(haven)
+library(patchwork)
+setwd(here("C:/University/ELTE/PhD/Okulás/1st semester/Statisztikai programozás/elte-ppk-r-course-Fall-2025"))
+getwd()
+data_a <- read_sav("data/assignment_4_dataset_A.sav")
+data_b <- read_sav("data/assignment_4_dataset_B.sav")
+
+
 ```
 
 ## Exploratory data analysis
@@ -67,6 +75,66 @@ data_A <- read_csv("data/datafile_A.csv")
 Run an exploratory data analysis (EDA) to investigate the dataset.
 
 ```{r}
+variables = c("pain", "age", "weight", "stai", "pain_cat", "mindfulness", "cortisol_serum", "cortisol_saliva", "IQ", "household_income")
+
+
+# Distribution of each variable
+distribution = function(variables){
+  var = sym(variables)
+  
+  data_a |>
+  ggplot(aes(x = !!var)) +
+  geom_histogram() +
+    #xlim(0, NA) +
+    #ylim(0, NA) +
+    theme_minimal()
+}
+
+for (i in variables){
+  assign(paste0(i, "_distribution"), distribution(i))
+}
+
+# Plot all distributions together
+all_distributions = age_distribution + weight_distribution + IQ_distribution + household_income_distribution + pain_distribution + pain_cat_distribution + stai_distribution + mindfulness_distribution + cortisol_serum_distribution + cortisol_saliva_distribution + plot_layout(ncol = 3, axis_titles = "collect_y")
+# Save plot
+ggsave("all_distributions.png")
+
+# Distributions seem fine
+
+# Summary statistics of each variable
+summary_stats <- data.frame()
+
+for (s in variables) {
+  scores <- data_a[[s]]
+  
+  min_val <- min(scores, na.rm = TRUE)
+  max_val <- max(scores, na.rm = TRUE)
+  mean_val <- mean(scores, na.rm = TRUE)
+  median_val = median(scores, na.rm = TRUE)
+  sd_val <- sd(scores, na.rm = TRUE)
+  se_val <- sd_val / sqrt(sum(!is.na(scores)))
+  shapiro <- tryCatch({
+    shapiro.test(scores)$p.value
+  }, error = function(e) NA)
+  normal = ifelse(shapiro < 0.05, FALSE, TRUE)
+  
+
+  summary_stats <- rbind(summary_stats, data.frame(
+    variables = s,
+    min = min_val,
+    max = max_val,
+    mean = mean_val,
+    median = median_val,
+    sd = sd_val,
+    se = se_val,
+    shapiro = shapiro,
+    normal = normal
+  ))
+}
+
+# Show summary statistics
+View(summary_stats)
+
 
 ```
 
@@ -75,6 +143,34 @@ Run an exploratory data analysis (EDA) to investigate the dataset.
 If you find values in the dataset during the EDA, that are not correct based on the provided descriptions of the variables of the dataset please correct them here.
 
 ```{r}
+# ID, sex, and hospital are character vectors instead of factor
 
+data_a_clean = data_a |> 
+  rename(stai = STAI_trait) |> 
+  mutate(ID = as.integer(str_remove(ID, "ID_")),
+         hospital = as.factor(str_remove(hospital, "hospital_")),
+         sex = as.factor(str_to_lower(sex)))
+
+is.integer(data_a_clean$ID)
+is.factor(data_a_clean$hospital)
+levels(data_a_clean$sex)
+
+
+# Household income has negative values
+
+data_a_clean = data_a_clean |> 
+  mutate(household_income = if_else(
+    household_income < 0, NA_real_, household_income))
+
+# Investigate if low IQ participant(s) understood STAI, pain_cat, and mindfulness questionnaires by comparing them to other respondents
+
+data_a_clean |> 
+  mutate(IQ_low  = if_else(IQ < 70, TRUE, FALSE)) |> 
+  pivot_longer(cols = c(pain_cat, stai, pain), names_to = "variable", values_to = "value") |> 
+  ggplot(aes(x = value, fill = IQ_low)) +
+  geom_bar() +
+  facet_wrap(~ variable, scales = "free_x")
+
+# Participants with below 70 IQ do not show meaningful differences in interpretable questions, they stay for analysis
 ```
 
