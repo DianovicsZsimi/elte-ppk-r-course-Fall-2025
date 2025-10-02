@@ -58,12 +58,23 @@ Compare the model coefficients and the confidence intervals observed in this ass
 Read the datasets used in this assignment. Pay attention to the extensions of the datafiles.
 
 ```{r}
+if(!require("tidyverse")) install.packages("tidyverse")
+if(!require("here")) install.packages("here")
+if(!require("haven")) install.packages("haven")
+if(!require("patchwork")) install.packages("patchwork")
+if(!require("lme4")) install.packages("lme4")
+if(!require("lmerTest")) install.packages("lmerTest")
+
 library(tidyverse)
 library(here)
 library(haven)
 library(patchwork)
-setwd(here("C:/University/ELTE/PhD/Okulás/1st semester/Statisztikai programozás/elte-ppk-r-course-Fall-2025"))
-getwd()
+library(lme4)
+library(lmerTest)
+
+here::here("data")
+#setwd(here("C:/University/ELTE/PhD/Okulás/1st semester/Statisztikai programozás/elte-ppk-r-course-Fall-2025"))
+#getwd()
 data_a <- read_sav("data/assignment_4_dataset_A.sav")
 data_b <- read_sav("data/assignment_4_dataset_B.sav")
 
@@ -75,7 +86,7 @@ data_b <- read_sav("data/assignment_4_dataset_B.sav")
 Run an exploratory data analysis (EDA) to investigate the dataset.
 
 ```{r}
-variables = c("pain", "age", "weight", "stai", "pain_cat", "mindfulness", "cortisol_serum", "cortisol_saliva", "IQ", "household_income")
+variables = c("pain", "age", "weight", "STAI_trait", "pain_cat", "mindfulness", "cortisol_serum", "cortisol_saliva", "IQ", "household_income")
 
 
 # Distribution of each variable
@@ -95,7 +106,7 @@ for (i in variables){
 }
 
 # Plot all distributions together
-all_distributions = age_distribution + weight_distribution + IQ_distribution + household_income_distribution + pain_distribution + pain_cat_distribution + stai_distribution + mindfulness_distribution + cortisol_serum_distribution + cortisol_saliva_distribution + plot_layout(ncol = 3, axis_titles = "collect_y")
+all_distributions = age_distribution + weight_distribution + IQ_distribution + household_income_distribution + pain_distribution + pain_cat_distribution + STAI_trait_distribution + mindfulness_distribution + cortisol_serum_distribution + cortisol_saliva_distribution + plot_layout(ncol = 3, axis_titles = "collect_y")
 # Save plot
 ggsave("all_distributions.png")
 
@@ -172,5 +183,53 @@ data_a_clean |>
   facet_wrap(~ variable, scales = "free_x")
 
 # Participants with below 70 IQ do not show meaningful differences in interpretable questions, they stay for analysis
+```
+
+## Fit linear mixed effect model on Data A
+
+```{r}
+#fit a linear mixed model to estimate postoperative pain on datafile A.
+#use the following predictors: age, sex, STAI, pain catastrophizing, mindfulness, and serum cortisol
+#model has to account for the clustering of the data in different hospital sites.
+#fit a random intercept model including the random intercept of hospital-ID.
+#note the model coefficients and the confidence intervals of the coefficients for all fixed effect predictors, and compare them to the ones obtained in the 3 assignment. 
+#compute the variance explained by the fixed effect predictors using marginal R^2^, and the variance explained by the fixed and random effect terms combined using conditional R^2^. 
+
+model_1 = lmer(pain ~ pain_cat + stai + mindfulness + cortisol_serum + age + sex + (1|hospital), data = data_a_clean)
+
+plot(ranef(model_1, condVar = T))
+
+summary(model_1)
+coef(model_1)
+confint(model_1)
+
+install.packages("performance")
+library(performance)
+
+r2_nakagawa(model_1)
+
+# Checking assumptions
+
+## Linearity
+
+## Constant variance
+
+## Normal distribution of errors
+
+## Independence of errors
+```
+
+
+## Check fit for Data B
+
+## Report neatly
+
+## Discussion
+
+## Fixes
+
+```{r}
+# here package
+# explore hypothesized connections visually
 ```
 
