@@ -64,21 +64,23 @@ if(!require("haven")) install.packages("haven")
 if(!require("patchwork")) install.packages("patchwork")
 if(!require("lme4")) install.packages("lme4")
 if(!require("lmerTest")) install.packages("lmerTest")
+if(!require("performance")) install.packages("performance")
+if(!require("see")) install.packages("see")
+if(!require("sjPlot")) install.packages("sjPlot")
 
+library(sjPlot)
+library(performance)
 library(tidyverse)
 library(here)
 library(haven)
 library(patchwork)
 library(lme4)
 library(lmerTest)
+library(see)
 
-here::here("data")
-#setwd(here("C:/University/ELTE/PhD/Okulás/1st semester/Statisztikai programozás/elte-ppk-r-course-Fall-2025"))
-#getwd()
-data_a <- read_sav("data/assignment_4_dataset_A.sav")
-data_b <- read_sav("data/assignment_4_dataset_B.sav")
-
-
+here::i_am("README.md")
+data_a <- read_sav(here("data", "assignment_4_dataset_A.sav"))
+data_b <- read_sav(here("data", "assignment_4_dataset_B.sav"))
 ```
 
 ## Exploratory data analysis
@@ -188,39 +190,48 @@ data_a_clean |>
 ## Fit linear mixed effect model on Data A
 
 ```{r}
-#fit a linear mixed model to estimate postoperative pain on datafile A.
-#use the following predictors: age, sex, STAI, pain catastrophizing, mindfulness, and serum cortisol
-#model has to account for the clustering of the data in different hospital sites.
-#fit a random intercept model including the random intercept of hospital-ID.
-#note the model coefficients and the confidence intervals of the coefficients for all fixed effect predictors, and compare them to the ones obtained in the 3 assignment. 
-#compute the variance explained by the fixed effect predictors using marginal R^2^, and the variance explained by the fixed and random effect terms combined using conditional R^2^. 
-
 model_1 = lmer(pain ~ pain_cat + stai + mindfulness + cortisol_serum + age + sex + (1|hospital), data = data_a_clean)
-
-plot(ranef(model_1, condVar = T))
 
 summary(model_1)
 coef(model_1)
 confint(model_1)
-
-install.packages("performance")
-library(performance)
-
 r2_nakagawa(model_1)
+
+
+sjPlot::plot_model(model_1,
+                   show.values = TRUE, value.size = 3, value.offset = 0.3, vline.color = "black")
 
 # Checking assumptions
 
-## Linearity
+check_model(model_1, verbose = TRUE)
+### Seems that no assumptions have been violated, still, I will investigate the normality and homogeneity of variance assumptions further
 
 ## Constant variance
 
-## Normal distribution of errors
+plot(model_1)
+check_heteroscedasticity(model_1)
 
-## Independence of errors
+## Normality
+
+qqnorm(resid(model_1))
+qqline(resid(model_1))
+
+qqnorm(ranef(model_1)$hospital[[1]])
+qqline(ranef(model_1)$hospital[[1]])
+
 ```
 
 
 ## Check fit for Data B
+
+```{r}
+model_2 = lmer(pain ~ pain_cat + STAI_trait + mindfulness + cortisol_serum + age + sex + (1|hospital), data = data_b)
+
+summary(model_2)
+coef(model_2)
+confint(model_2)
+r2_nakagawa(model_2)
+```
 
 ## Report neatly
 
@@ -229,7 +240,6 @@ r2_nakagawa(model_1)
 ## Fixes
 
 ```{r}
-# here package
 # explore hypothesized connections visually
 ```
 
