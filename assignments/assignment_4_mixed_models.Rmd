@@ -110,7 +110,7 @@ for (i in variables){
 # Plot all distributions together
 all_distributions = age_distribution + weight_distribution + IQ_distribution + household_income_distribution + pain_distribution + pain_cat_distribution + STAI_trait_distribution + mindfulness_distribution + cortisol_serum_distribution + cortisol_saliva_distribution + plot_layout(ncol = 3, axis_titles = "collect_y")
 # Save plot
-ggsave("all_distributions.png")
+ggsave(here("plots", "all_distributions.png"))
 
 # Distributions seem fine
 
@@ -198,8 +198,10 @@ confint(model_1)
 r2_nakagawa(model_1)
 
 
-sjPlot::plot_model(model_1,
+model_coefficients = sjPlot::plot_model(model_1,
                    show.values = TRUE, value.size = 3, value.offset = 0.3, vline.color = "black")
+
+ggsave(here("plots", "model_coefficients.png"))
 
 # Checking assumptions
 
