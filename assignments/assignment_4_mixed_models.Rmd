@@ -67,6 +67,9 @@ if(!require("lmerTest")) install.packages("lmerTest")
 if(!require("performance")) install.packages("performance")
 if(!require("see")) install.packages("see")
 if(!require("sjPlot")) install.packages("sjPlot")
+if(!require("broom")) install.packages("broom")
+if(!require("broom.mixed")) install.packages("broom.mixed")
+if(!require("MuMIn")) install.packages("MuMIn")
 
 library(sjPlot)
 library(performance)
@@ -77,6 +80,9 @@ library(patchwork)
 library(lme4)
 library(lmerTest)
 library(see)
+library(broom)
+library(broom.mixed)
+library(MuMIn)
 
 here::i_am("README.md")
 data_a <- read_sav(here("data", "assignment_4_dataset_A.sav"))
@@ -110,7 +116,7 @@ for (i in variables){
 # Plot all distributions together
 all_distributions = age_distribution + weight_distribution + IQ_distribution + household_income_distribution + pain_distribution + pain_cat_distribution + STAI_trait_distribution + mindfulness_distribution + cortisol_serum_distribution + cortisol_saliva_distribution + plot_layout(ncol = 3, axis_titles = "collect_y")
 # Save plot
-ggsave(here("plots", "all_distributions.png"))
+ggsave(here("assignment_4_materials", "all_distributions.png"))
 
 # Distributions seem fine
 
@@ -190,49 +196,111 @@ data_a_clean |>
 ## Fit linear mixed effect model on Data A
 
 ```{r}
-model_1 = lmer(pain ~ pain_cat + stai + mindfulness + cortisol_serum + age + sex + (1|hospital), data = data_a_clean)
+model_a = lmer(pain ~ pain_cat + stai + mindfulness + cortisol_serum + age + sex + (1|hospital), data = data_a_clean)
 
-summary(model_1)
-coef(model_1)
-confint(model_1)
-r2_nakagawa(model_1)
+summary(model_a)
+r.squaredGLMM(model_a)
+coef(model_a)
+confint(model_a)
 
 
-model_coefficients = sjPlot::plot_model(model_1,
+
+model_coefficients = sjPlot::plot_model(model_a,
                    show.values = TRUE, value.size = 3, value.offset = 0.3, vline.color = "black")
 
-ggsave(here("plots", "model_coefficients.png"))
+ggsave(here("assignment_4_materials", "model_coefficients.png"))
 
 # Checking assumptions
 
-check_model(model_1, verbose = TRUE)
+check_model(model_a, verbose = TRUE)
 ### Seems that no assumptions have been violated, still, I will investigate the normality and homogeneity of variance assumptions further
 
 ## Constant variance
 
-plot(model_1)
-check_heteroscedasticity(model_1)
+plot(model_a)
+check_heteroscedasticity(model_a)
 
 ## Normality
 
-qqnorm(resid(model_1))
-qqline(resid(model_1))
+qqnorm(resid(model_a))
+qqline(resid(model_a))
 
-qqnorm(ranef(model_1)$hospital[[1]])
-qqline(ranef(model_1)$hospital[[1]])
+qqnorm(ranef(model_a)$hospital[[1]])
+qqline(ranef(model_a)$hospital[[1]])
 
+# Compare with assignment 3 from previous year
+
+model_results_new <- tidy(model_a, conf.int = TRUE)
+
+write.csv(
+  model_results_new,
+  here("assignment_4_materials", "model_results.csv"),
+  row.names = FALSE
+)
+
+model_results_old = read_csv("https://raw.githubusercontent.com/DianovicsZsimi/elte-ppk-r-course-r_data_analysis-23_24_1/refs/heads/main/tab.csv", col_names = TRUE)
+
+model_results_old_comparison = model_results_old |> 
+  select(term, estimate, p.value, conf.low, conf.high) |> 
+  mutate(model = "Old",
+         term = recode(term, "STAI_trait" = "stai"),
+         term = recode(term, "cortisol_saliva" = "cortisol")) 
+
+model_results_new_comparison = model_results_new |> 
+  filter(effect == "fixed") |> 
+  select(term, estimate, p.value, conf.low, conf.high) |> 
+  mutate(model = "New",
+         term = recode(term, "cortisol_serum" = "cortisol"))
+  
+
+combined <- bind_rows(model_results_old_comparison, model_results_new_comparison)
+
+ggplot(combined, aes(x = estimate, y = term, color = model)) +
+  geom_point(position = position_dodge(width = 0.6), size = 3) +
+  geom_errorbarh(aes(xmin = conf.low, xmax = conf.high),
+                 position = position_dodge(width = 0.6), height = 0.2) +
+  geom_text(aes(label = round(estimate, 2)),
+            position = position_dodge(width = 1),
+            hjust = 0, size = 3.5, show.legend = FALSE,
+            vjust = -1.7) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "black") +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Model comparison",
+    x = "Estimate (with 95% CI)",
+    y = "Term",
+    color = "Model"
+  )
+
+# Probably due to controlling for between-hospital random effects, the mixed effect model has more confidence, leading to smaller CI ranges and a higher intercept value.
 ```
 
 
 ## Check fit for Data B
 
 ```{r}
-model_2 = lmer(pain ~ pain_cat + STAI_trait + mindfulness + cortisol_serum + age + sex + (1|hospital), data = data_b)
+data_b_clean = data_b |> 
+  rename(stai = STAI_trait) |> 
+  mutate(ID = as.integer(str_remove(ID, "ID_")),
+         hospital = as.factor(str_remove(hospital, "hospital_")),
+         sex = as.factor(str_to_lower(sex)))
 
-summary(model_2)
-coef(model_2)
-confint(model_2)
-r2_nakagawa(model_2)
+prediction_b <- predict(model_a, newdata = data_b_clean, allow.new.levels = T)
+
+residuals_b <- data_b_clean$pain - prediction_b
+
+# RSS
+RSS <- sum(residuals_b^2)
+
+# TSS
+TSS <- sum((data_b_clean$pain - mean(data_b_clean$pain))^2)
+
+# R² on data_B
+R2_B <- 1 - (RSS/TSS)
+R2_B
+
+r.squaredGLMM(model_a)
+tab_model(model_a)
 ```
 
 ## Report neatly
