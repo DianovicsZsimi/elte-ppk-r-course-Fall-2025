@@ -107,6 +107,13 @@ Talk about the limitations of your study and findings.
 Read the Animal Rights Scale (ARQ) dataset from the 'data/' folder. Pay attention to the extension.
 
 ```{r}
+library(ggplot2)
+library(dplyr)
+library(patchwork)
+library(corrplot)
+library(psych)
+library(MVN)
+
 data  = read.csv(here::here("data/assignment_5_dataset.csv"))
 ```
 
@@ -116,10 +123,6 @@ data  = read.csv(here::here("data/assignment_5_dataset.csv"))
 head(data)
 
 summary(data)
-
-library(ggplot2)
-library(dplyr)
-library(patchwork)
 
 # Based on the article, the following items are reverse-scored: 16, 19, 21, 24, 28
 
@@ -182,6 +185,11 @@ Recode the sex and party variables as factor type variables with the following l
   * party: 1 - democrat, 2 - republican, 3 - other, 4 - none
 
 ```{r}
+# Removing rows with NA values for ease of analysis (multiple imputation can be done, but losing four cases is acceptable here)
+data = data |> 
+  rowwise() |> 
+  filter(if_all(everything(), ~ !is.na(.)))
+
 data = data |> 
   mutate(sex = factor(sex, levels = c(1,2), labels = c("male", "female")),
          party = factor(party, levels = c(1,2,3,4), labels = c("democrat", "republican", "other", "none"))
@@ -208,7 +216,6 @@ cor_matrix = cor(correlation_data, use = "pairwise.complete.obs")
 Create a visualization of the results of the correlation matrix.
 
 ```{r}
-library(corrplot)
 corrplot(cor_matrix, method = "color", type = "lower", tl.col = "black", tl.srt = 45)
 ```
 
@@ -217,8 +224,6 @@ corrplot(cor_matrix, method = "color", type = "lower", tl.col = "black", tl.srt 
 Calculate the KMO score.
 
 ```{r}
-library(psych)
-
 kmo_result = KMO(cor_matrix)
 kmo_result
 
@@ -232,9 +237,8 @@ bartlett_result
 ## Test for multivariate normality
 
 ```{r}
-library(MVN)
-mvn_result = mvn(data = correlation_data, mvnTest = "mardia", 
-                 univariateTest = "SW",
+mvn_result = MVN::mvn(data = correlation_data, mvn_test = "mardia", 
+                 univariate_test = "SW",
                  #multivariatePlot = "qq"
                  )
 mvn_result
@@ -244,9 +248,9 @@ Test for skewness and kurtosis.
 
 ```{r}
 skew_kurtosis_data = data.frame(
-  item = rownames(mvn_result$Descriptives),
-  skewness = mvn_result$Descriptives$Skew,
-  kurtosis = mvn_result$Descriptives$Kurtosis
+  item = rownames(mvn_result$descriptives),
+  skewness = mvn_result$descriptives$Skew,
+  kurtosis = mvn_result$descriptives$Kurtosis
 ) |> 
   mutate(
    skewness = if_else(abs(skewness) > 2, "skewed" , "normal" ),
@@ -261,16 +265,27 @@ skew_kurtosis_data
 Create a scree plot to help the decision on how many factors to include.
 
 ```{r}
-pca = prcomp(correlation_data)
-var_explained = pca$sdev^2 / sum(pca$sdev^2)
+# Remove rows with NA values for prcomp
 
+correlation_data = na.omit(correlation_data)
 
-qplot(c(1:28), var_explained) + 
-  geom_line() + 
-  xlab("Principal Component") + 
-  ylab("Variance Explained") +
-  ggtitle("Scree Plot") +
-  ylim(0, 1)
+# Remove subpar questions
+
+correlation_data = correlation_data |> 
+  select(-ar18, -ar28)
+
+pca = prcomp(correlation_data, scale. = TRUE)
+eigen_values = pca$sdev^2 
+
+plot(eigen_values, type = "b", xlab = "Component Number", ylab = "Eigenvalue", main = "Scree Plot")
+abline(v = 2, col = "red")
+
+plot(eigen_values/sum(eigen_values), type = "b",
+     xlab = "Principal Component",
+     ylab = "Percentage of Variance Explained")
+abline(v = 2, col = "red")
+
+# It seems that 2 factors is a reasonable choice based on the scree plot.
 ```
 
 ## Run the factor analysis
@@ -278,31 +293,102 @@ qplot(c(1:28), var_explained) +
 Run the factor analysis with the chosen number of factors.
 
 ```{r}
+efa_result = fa(correlation_data, 
+                 nfactors = 2, 
+                 rotate = "oblimin", 
+                 fm = "pa")
+efa_result$loadings
 
+# Oblimin rotation was chosen because factors are likely correlated.
+# There is significant cross-loading
+# Several items do no reach the 0.3 threshold
 ```
 
 Sort the communality scores in decreasing order.
 
 ```{r}
-
+efa_communality = as.data.frame(efa_result$communality[order(-efa_result$communality)])
+colnames(efa_communality) = c("Communality")
+efa_communality
 ```
 
 Calculate the mean communality scores.
 
 ```{r}
-
+mean_communality = mean(efa_result$communality)
+mean_communality
 ```
 
 Show the factor loadings for the chosen factor structure.
 
 ```{r}
+loadings_df = as.data.frame(efa_result$loadings[1:nrow(efa_result$loadings), 1:ncol(efa_result$loadings)])
+colnames(loadings_df) = c("Factor 1", "Factor 2")
+loadings_df = loadings_df |> 
+  mutate(across(everything(), ~ round(.x, 3)),
+         factor_1 = if_else(abs(`Factor 1`) < 0.2, NA, `Factor 1`),
+         factor_2 = if_else(abs(`Factor 2`) < 0.2, NA, `Factor 2`)) |> 
+  select(factor_1, factor_2)
+loadings_df
 
+# Cronbach alpha
+
+items_factor1 <- names(which(abs(efa_result$loadings[,1]) > 0.3))
+
+alpha(correlation_data[, items_factor1])
+
+items_factor2 <- names(which(abs(efa_result$loadings[,2]) > 0.3))
+alpha(correlation_data[, items_factor2])
+# Cronbach alpha is acceptable for both factors
+
+# Model fit
+
+efa_result
+
+
+# RMSEA is fine, TLI is a bit low but acceptable, overall, fit should be improved
+
+# Items 14, 11, 8, 1 do not load significantly at the 0.3 threshold on any factor, I will remove them and redo the analysis
+
+## Redo factor analysis without low-loading items
+
+correlation_data_new = correlation_data |> 
+  select(-ar1, -ar8, -ar11, -ar14)
+
+efa_result_new = fa(correlation_data_new, 
+                 nfactors = 2, 
+                 rotate = "oblimin", 
+                 fm = "pa")
+
+efa_result_new$loadings
+
+# Compare models
+
+model_comparison <- data.frame(
+  Model = c("Initial", "Revised"),
+  Chi_Square = c(efa_result$STATISTIC, efa_result_new$STATISTIC),
+  RMSEA = c(efa_result$RMSEA[1], efa_result_new$RMSEA[1]),
+  TLI = c(efa_result$TLI, efa_result_new$TLI),
+  BIC = c(efa_result$BIC, efa_result_new$BIC)
+) |> 
+  mutate(
+    Chi_Square = round(Chi_Square, 3),
+    RMSEA = round(RMSEA, 3),
+    TLI = round(TLI, 3),
+    BIC = round(BIC, 3)
+  )
+
+model_comparison
+
+# The revised model shows improved fit indices, I will proceed with this model.
+
+# Report the number of factors you chose to keep in your final factor structure and give a rationale why. Include the parallel analysis scree plot in your report. Report the post-extraction eignevalues, variance explained, and cumulative variance explained by the final factors in a table format. Report the average post-extraction communality of the items.
 ```
 
 Visualize the factor structure.
 
 ```{r}
-
+fa.diagram(efa_result_new)
 ```
 
 ## Run linear regression
@@ -310,18 +396,93 @@ Visualize the factor structure.
 Calculate the factor scores.
 
 ```{r}
+efa_result_new$loadings
 
+# Factor 1 contains these items: 3,4, 5, 7, 10, 13, 15, 16, 22, 23, 24, 26
+# Item 15 cross-loads but loads higher on factor 1, I will include it there.
+
+# Factor 2 contains these items: 2, 6, 9, 12, 17, 19, 20, 21, 25, 27
+# Item 12 cross-loads but loads higher on factor 2, I will include it there as well.
+
+# Calculate factor scores
+factor_scores = correlation_data_new |> 
+  mutate(
+    factor_1_total = ar3 + ar4 + ar5 + ar7 + ar10 + ar13 + ar15 + ar16 + ar22 + ar23 + ar24 + ar26,
+    factor_2_total = ar2 + ar6 + ar9 + ar12 + ar17+ ar19 + ar20 + ar21 + ar25 + ar27
+  ) |> 
+  select(factor_1_total, factor_2_total)
+
+# Factor 1 items
+
+# It is morally wrong to drink milk and eat eggs.
+# A human has no right to use a horse as a means of transportation (riding) or entertainment (racing).
+# It is wrong to wear leather jackets and pants.
+# I have seriously considered becoming a vegetarian in an effort to save animal lives.
+# It is morally wrong to eat beef and other "red" meat.
+# It is wrong to wear leather belts and shoes.
+# Having extended basic rights to minorities and women, it is now time to extend them also to animals.
+# God put animals on Earth for man to use.
+# It is a violation of an animal's rights to be held captive as a pet by a
+# It is wrong to wear animal fur (such as mink coats).
+# It is appropriate for humans to kill animals that destroy human property, for example, rats, mice, and pigeons.
+# It is morally wrong to eat chicken and fish.
+# Hunters play an important role in regulating the size of deer populations.
+
+
+
+# Factor 2 items
+
+# Animal research cannot be justified and should be stopped.
+# Most medical research done on animals is unnecessary and invalid.
+# We need more regulations governing the use of animals in research.
+# Animals should be granted the same rights as humans.
+# There are plenty of viable alternatives to the use of animals in biomedical and behavioral research.
+# Research on animals has little or no bearing on problems confronting people.
+# New surgical procedures and experimental drugs should be tested on animals before they are used on people.
+# I am very concerned about pain and suffering in animals.
+# Since many important questions cannot be answered by doing experiments on people, we are left with no alternatives but to do animal research.
+# Most cosmetics research done on animals is unnecessary and invalid.
+# Most psychological research done on animals is unnecessary and invalid.
+
+# Factor 1 can be called: wrongful use of animals
+# Factor 2 can be called: animal research ethics
+
+factor_scores = factor_scores |> 
+  rename(
+    wrongful_use_of_animals = factor_1_total,
+    animal_research_ethics = factor_2_total
+  )
 ```
 
 Bind factor scores to the original dataset.
 
 ```{r}
+data_regression <- data |> 
+  bind_cols(factor_scores)
 
 ```
 
 Run the logistic regression.
 
 ```{r}
+regression_model = lm(liberal ~ wrongful_use_of_animals + animal_research_ethics, data = data_regression)
+summary(regression_model)
 
+# Model performance is weak, R2 is low.
+# Wrongful use of animals is a significant predictor, animal research ethics is not.
+# Almost everyone is predicted to be around 3 (no strong opinion), which is strange.
+
+# If we alter scores based on party affiliation, so that democrats get +1, republicans -1, if they answered with a 3, the model might be better
+
+data_regression_qrp = data_regression |> 
+  mutate(liberal_qrp = case_when(
+    party == "democrat" & liberal == 3 ~ 4,
+    party == "republican" & liberal == 3 ~ 2,
+    TRUE ~ liberal
+  ))
+
+regression_questionable = lm(liberal_qrp ~ wrongful_use_of_animals + animal_research_ethics, data = data_regression_qrp)
+summary(regression_questionable)
+# The model has not improved significantly, R2 is still low, now no factors are significant.
 ```
 
