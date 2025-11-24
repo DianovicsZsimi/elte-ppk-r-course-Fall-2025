@@ -9,6 +9,10 @@ editor_options:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
+library(here)
+library(patchwork)
+
+here::here()
 ```
 
 # Introduction
@@ -103,13 +107,72 @@ Talk about the limitations of your study and findings.
 Read the Animal Rights Scale (ARQ) dataset from the 'data/' folder. Pay attention to the extension.
 
 ```{r}
-
+data  = read.csv(here::here("data/assignment_5_dataset.csv"))
 ```
 
 ## EDA
 
 ```{r}
+head(data)
 
+summary(data)
+
+library(ggplot2)
+library(dplyr)
+library(patchwork)
+
+# Based on the article, the following items are reverse-scored: 16, 19, 21, 24, 28
+
+data = data |> 
+  mutate(
+    ar16 = 6 - ar16,
+    ar19 = 6 - ar19,
+    ar21 = 6 - ar21,
+    ar24 = 6 - ar24,
+    ar28 = 6 - ar28
+  )
+
+items <- paste0("ar", 1:28)
+
+plots <- list()
+
+for (item in items) {
+  
+  p <- data %>%
+    ggplot(aes(x = as.numeric(.data[[item]]))) +
+    geom_histogram(binwidth = 1, boundary = 0.5, closed = "right") +
+    scale_x_continuous(
+      breaks = 1:5,
+      limits = c(0.5, 5.5)
+    ) +
+    labs(
+      title = NULL,
+      x = item,
+      y = NULL
+    ) +
+    theme_minimal(base_size = 10) +
+    theme(
+      axis.text.y = element_blank(),
+      axis.ticks.y = element_blank(),
+      panel.grid.major.y = element_blank(),
+      panel.grid.minor = element_blank()
+    )
+  
+  plots[[item]] <- p
+}
+
+wrap_plots(plots, ncol = 4)
+
+participant_summary <- data %>%
+  rowwise() %>%
+  select(ar1:ar28) %>%
+  summarise(
+    mean_row = mean(c_across(everything()), na.rm = TRUE),
+    sum_row  = sum(c_across(starts_with("ar")), na.rm = TRUE),
+    median_row = median(c_across(where(is.numeric)), na.rm = TRUE),
+    sd_row = sd(c_across(where(is.numeric)), na.rm = TRUE)
+  ) %>%
+  ungroup()
 ```
 
 ## Data manipulation
@@ -119,7 +182,10 @@ Recode the sex and party variables as factor type variables with the following l
   * party: 1 - democrat, 2 - republican, 3 - other, 4 - none
 
 ```{r}
-
+data = data |> 
+  mutate(sex = factor(sex, levels = c(1,2), labels = c("male", "female")),
+         party = factor(party, levels = c(1,2,3,4), labels = c("democrat", "republican", "other", "none"))
+  )
 ```
 
 # Creating a correlation matrix
@@ -127,13 +193,14 @@ Recode the sex and party variables as factor type variables with the following l
 __Note:__ Remember to only include the variables of the questionnaire that will be part of the factor analysis.
 
 ```{r}
-
+correlation_data = data |> 
+  select(ar1:ar28)
 ```
 
 Create the correlation matrix.
 
 ```{r}
-
+cor_matrix = cor(correlation_data, use = "pairwise.complete.obs")
 ```
 
 ## Visualizing the correlation matrix
@@ -141,7 +208,8 @@ Create the correlation matrix.
 Create a visualization of the results of the correlation matrix.
 
 ```{r}
-
+library(corrplot)
+corrplot(cor_matrix, method = "color", type = "lower", tl.col = "black", tl.srt = 45)
 ```
 
 ## Test for factorability
@@ -149,19 +217,43 @@ Create a visualization of the results of the correlation matrix.
 Calculate the KMO score.
 
 ```{r}
+library(psych)
 
+kmo_result = KMO(cor_matrix)
+kmo_result
+
+# Question 18 and 28 have below .80 MSA values, consider removing them later if necessary.
+
+# Bartlett's test
+bartlett_result = cortest.bartlett(cor_matrix, n = nrow(correlation_data))
+bartlett_result
 ```
 
 ## Test for multivariate normality
 
 ```{r}
-
+library(MVN)
+mvn_result = mvn(data = correlation_data, mvnTest = "mardia", 
+                 univariateTest = "SW",
+                 #multivariatePlot = "qq"
+                 )
+mvn_result
 ```
 
 Test for skewness and kurtosis.
 
 ```{r}
-
+skew_kurtosis_data = data.frame(
+  item = rownames(mvn_result$Descriptives),
+  skewness = mvn_result$Descriptives$Skew,
+  kurtosis = mvn_result$Descriptives$Kurtosis
+) |> 
+  mutate(
+   skewness = if_else(abs(skewness) > 2, "skewed" , "normal" ),
+   kurtosis = if_else(abs(kurtosis) > 7, "kurt", "normal")
+  )
+  
+skew_kurtosis_data
 ```
 
 ## Create scree plot
@@ -169,7 +261,16 @@ Test for skewness and kurtosis.
 Create a scree plot to help the decision on how many factors to include.
 
 ```{r}
+pca = prcomp(correlation_data)
+var_explained = pca$sdev^2 / sum(pca$sdev^2)
 
+
+qplot(c(1:28), var_explained) + 
+  geom_line() + 
+  xlab("Principal Component") + 
+  ylab("Variance Explained") +
+  ggtitle("Scree Plot") +
+  ylim(0, 1)
 ```
 
 ## Run the factor analysis
