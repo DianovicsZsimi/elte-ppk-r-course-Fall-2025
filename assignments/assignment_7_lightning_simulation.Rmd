@@ -32,6 +32,178 @@ There is no dataset for this project. You have to simulate from scratch!
 ![Lightning](assignment_7_example/example_lightning.png)
 
 ```{r}
+library(tidyverse)
+library(ggplot2)
+library(gganimate)
+library(gifski)
+library(here)
 
-```
+here::i_am("README.md")
 
+# First step: create a dataset that has a 1% chance of being 1, instead of 0
+set.seed(12345)
+
+n_steps <- 1000
+
+data_1 = tibble(
+  fork = 1, 
+  y = 1000, 
+  x = 500
+)
+
+# Each random walk can go -1 or +1 on the x axis, each step is recorded
+
+for(i in 1:n_steps) {
+  last_x <- data_1$x[nrow(data_1)]
+  last_y <- data_1$y[nrow(data_1)]
+  last_fork <- data_1$fork[nrow(data_1)]
+  
+  data_1 <- data_1 |>
+    add_row(
+      x = last_x + sample(c(1, -1), 1),
+      y = last_y - 1,
+      fork = last_fork + rbinom(1, 1, 0.01)
+    )
+}
+
+# Visualize the first try
+
+data_1 |> 
+  ggplot(aes(x, y)) +
+  geom_point() +
+  ylim(0, 200) +
+  xlim(400, 600)
+
+# Introduce forks: if fork increases by one, create a new x column and the y numbers should decrease together
+
+n_steps <- 200
+fork_prob <- 0.01 
+data_2 <- tibble(y = 200, x = 500)
+fork_count <- 0
+
+for(i in 1:n_steps) {
+  new_y <- data_2$y[nrow(data_2)] - 1
+  
+  x_cols <- names(data_2)[str_detect(names(data_2), "^x")]
+  
+  new_row <- tibble(y = new_y)
+  for(col in x_cols) {
+    new_row[[col]] <- data_2[[col]][nrow(data_2)] + sample(c(-1,1), 1)
+  }
+  
+  for(col in x_cols) {
+    if(runif(1) < fork_prob) {
+      fork_count <- fork_count + 1
+      fork_col <- paste0("x_fork_", fork_count)
+      new_row[[fork_col]] <- new_row[[col]]
+    }
+  }
+  
+  data_2 <- bind_rows(data_2, new_row)
+}
+
+# Visualize second model
+
+x_cols <- names(data_2)[str_detect(names(data_2), "^x")]
+
+data_2_long <- data_2 %>%
+  pivot_longer(
+    cols = all_of(x_cols),
+    names_to = "path",
+    values_to = "x"
+  )
+
+ggplot(data_2_long, aes(x = x, y = y)) +
+  geom_point(shape = 21, fill = "white", color = "blue", size = 0.7) +
+  ylim(0, 200) +
+  xlim(400, 600) +
+  theme(panel.background = element_rect(fill = "black"),
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.ticks = element_blank(),
+        axis.text = element_blank(),
+        panel.grid = element_blank())
+  
+
+# Introduce a bias when forked, instead of -1, +1, random walk, it should be -3, +3
+
+n_steps <- 200
+fork_prob <- 0.01
+data_3 <- tibble(y = 1, x = 500)
+fork_count <- 0
+
+bias_length <- 6
+bias_value <- 1 
+bias_length_remaining <- c() 
+
+for(i in 1:n_steps) {
+  new_y <- data_3$y[nrow(data_3)] + 1
+  
+  x_cols <- names(data_3)[str_detect(names(data_3), "^x")]
+  
+  new_row <- tibble(y = new_y)
+  
+  for(col in x_cols) {
+    if(col %in% names(bias_length_remaining)) {
+      new_row[[col]] <- data_3[[col]][nrow(data_3)] + bias_value
+      bias_length_remaining[[col]] <- bias_length_remaining[[col]] - 1
+      if(bias_length_remaining[[col]] == 0) {
+        bias_length_remaining <- bias_length_remaining[!names(bias_length_remaining) %in% col]
+      }
+    } else {
+      new_row[[col]] <- data_3[[col]][nrow(data_3)] + sample(c(-1, 1), 1)
+    }
+  }
+  
+  for(col in x_cols) {
+    if(runif(1) < fork_prob) {
+      fork_count <- fork_count + 1
+      fork_col <- paste0("x_fork_", fork_count)
+      new_row[[fork_col]] <- new_row[[col]] 
+      bias_length_remaining[[fork_col]] <- bias_length
+    }
+  }
+  
+  data_3 <- bind_rows(data_3, new_row)
+}
+
+x_cols <- names(data_3)[str_detect(names(data_3), "^x")]
+
+data_3_long <- data_3 %>%
+  pivot_longer(
+    cols = all_of(x_cols),
+    names_to = "path",
+    values_to = "x"
+  )
+
+# Visualize new model
+
+ggplot(data_3_long, aes(x = x, y = y)) +
+  geom_point(shape = 21, fill = "white", color = "blue", size = 0.7) +
+  ylim(0, 200) +
+  xlim(400, 600) +
+  theme(panel.background = element_rect(fill = "black"),
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.ticks = element_blank(),
+        axis.text = element_blank(),
+        panel.grid = element_blank())
+
+# Animate the model
+
+animation = ggplot(data_3_long, aes(x = x, y = y)) +
+  geom_point(shape = 21, fill = "white", color = "blue", size = 0.7) +
+  ylim(200, 0) +
+  xlim(400, 600) +
+  theme(panel.background = element_rect(fill = "black"),
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.ticks = element_blank(),
+        axis.text = element_blank(),
+        panel.grid = element_blank()) +
+  transition_manual(frames = y, cumulative = TRUE)
+
+
+animated_plot <- animate(animation, width = 500, height = 500,  res = 100, duration = 3, renderer = gifski_renderer())
+animated_plot
+anim_save("lightning.gif", animation = animated_plot)
