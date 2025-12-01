@@ -13,19 +13,19 @@ library(tidyverse)
 
 # Introduction
 
-This assignment is related to the previous lab assignment concerning perioperative pain and its psychological and hormonal predictors. Just like previously, you will set up linear model to predict postoperative pain after wisdom tooth surgery, but this time you will have to also take into account the fact that there is clustering in the data. 
+This assignment is related to the previous lab assignment concerning perioperative pain and its psychological and hormonal predictors. Just like previously, you will set up linear model to predict postoperative pain after wisdom tooth surgery, but this time you will have to also take into account the fact that there is clustering in the data.
 
 Your research paper on the effect of the psychological and hormonal predictors of postoperative pain was so successful, that you managed to secure research funding for a multi-site replication study. Here your collaborators collect data in the same way you did in the original study at 20 different hospital sites. The goal of the study is to increase the generalizability of your findings. You would like to assess the model coefficients and the overall predictive efficiency of the predictors in your model.
 
-As a reminder, here is the protocol for data collection: “You have collected data from adults who were scheduled to undergo surgical extraction of the third mandibular molar (wisdom tooth surgery). Patients filled out a form in the waiting room before their surgery. The form contained questions about their sex, age, and weight, and psychological questionnaires assessing anxiety, pain catastrophizing, and mindfulness (see descriptions below). You also got blood samples and saliva samples from participants in the waiting room 5 minutes before their operations to determine the serum (a component of the blood) and salivary cortisol levels of participants. Participants were contacted 5 hours after the surgery to see how much pain they were experiencing. The __level of pain__ at that moment was recorded using a numerical rating scale using a __scale of 0 to 10__, where 0 means “no pain” and 10 means “worst pain I can imagine”. 
+As a reminder, here is the protocol for data collection: “You have collected data from adults who were scheduled to undergo surgical extraction of the third mandibular molar (wisdom tooth surgery). Patients filled out a form in the waiting room before their surgery. The form contained questions about their sex, age, and weight, and psychological questionnaires assessing anxiety, pain catastrophizing, and mindfulness (see descriptions below). You also got blood samples and saliva samples from participants in the waiting room 5 minutes before their operations to determine the serum (a component of the blood) and salivary cortisol levels of participants. Participants were contacted 5 hours after the surgery to see how much pain they were experiencing. The **level of pain** at that moment was recorded using a numerical rating scale using a **scale of 0 to 10**, where 0 means “no pain” and 10 means “worst pain I can imagine”.
 
-__The State Trait Anxiety Inventory:__ T measures trait anxiety on a scale of 20 to 80, higher scores mean higher anxiety. Anxiety has been found in many studies to positively correlate with the level of pain experienced. This is __variable STAI_trait__ in the dataset. 
+**The State Trait Anxiety Inventory:** T measures trait anxiety on a scale of 20 to 80, higher scores mean higher anxiety. Anxiety has been found in many studies to positively correlate with the level of pain experienced. This is **variable STAI_trait** in the dataset.
 
-__The Pain Catastrophizing Scale__ measures the extent of pain catastrophizing, which is characterized by a tendency to magnify the threat value of a pain stimulus and to feel helpless in the presence of pain, as well as by a relative inability to prevent or inhibit pain-related thoughts in anticipation of, during, or following a painful event. The total score on this scale ranges from 0 to 52, higher scores mean higher catastrophizing. Pain catastrophizing is one of the well-established predictors of clinical pain. This is __variable pain_cat__ in the dataset.
+**The Pain Catastrophizing Scale** measures the extent of pain catastrophizing, which is characterized by a tendency to magnify the threat value of a pain stimulus and to feel helpless in the presence of pain, as well as by a relative inability to prevent or inhibit pain-related thoughts in anticipation of, during, or following a painful event. The total score on this scale ranges from 0 to 52, higher scores mean higher catastrophizing. Pain catastrophizing is one of the well-established predictors of clinical pain. This is **variable pain_cat** in the dataset.
 
-__The Mindful Attention Awareness Scale (MAAS)__ measures dispositional mindfulness, which may be described as a tendency to turn attention to present-moment experiences in an open, non-judgemental way. The MAAS total score ranges from 1 to 6 (an average of the item scores), with higher scores representing higher dispositional mindfulness. Trait mindfulness has been theorized to serve as a protective factor against pain, as the individual would be more objective about their pain experience and tend to associate less discomfort, despair, and hopelessness to the pain-related sensations. This is __variable mindfulness__ in the dataset.
+**The Mindful Attention Awareness Scale (MAAS)** measures dispositional mindfulness, which may be described as a tendency to turn attention to present-moment experiences in an open, non-judgemental way. The MAAS total score ranges from 1 to 6 (an average of the item scores), with higher scores representing higher dispositional mindfulness. Trait mindfulness has been theorized to serve as a protective factor against pain, as the individual would be more objective about their pain experience and tend to associate less discomfort, despair, and hopelessness to the pain-related sensations. This is **variable mindfulness** in the dataset.
 
-__Cortisol__ is a stress hormone associated with acute and chronic stress. Cortisol levels are thought to be positively associated with pain experience. Cortisol can be __measured from both blood and the saliva__, although, serum cortisol is often regarded in medical research as more reliably related to stress (serum is a component of the blood plasma). These are __variables cortisol_serum__, and __cortisol_saliva__ in the dataset.”
+**Cortisol** is a stress hormone associated with acute and chronic stress. Cortisol levels are thought to be positively associated with pain experience. Cortisol can be **measured from both blood and the saliva**, although, serum cortisol is often regarded in medical research as more reliably related to stress (serum is a component of the blood plasma). These are **variables cortisol_serum**, and **cortisol_saliva** in the dataset.”
 
 # Datasets
 
@@ -33,17 +33,17 @@ You will need two datasets for this assignment, datafile A and B. You can load t
 
 # Task
 
-First, fit a linear mixed model to estimate postoperative pain on datafile A. You should use the same fixed effect predictors as you used in your final model in the 3 assignment. (If you did not do that assignment, use the following predictors: age, sex, STAI, pain catastrophizing, mindfulness, and serum cortisol.) Importantly, the model has to account for the clustering of the data in different hospital sites. We have no reason to assume that the effects of the different predictors would be different in the different hospitals, so fit a random intercept model including the random intercept of hospital-ID. Once the model is built, note the model coefficients and the confidence intervals of the coefficients for all fixed effect predictors, and compare them to the ones obtained in the 3 assignment. 
+First, fit a linear mixed model to estimate postoperative pain on datafile A. You should use the same fixed effect predictors as you used in your final model in the 3 assignment. (If you did not do that assignment, use the following predictors: age, sex, STAI, pain catastrophizing, mindfulness, and serum cortisol.) Importantly, the model has to account for the clustering of the data in different hospital sites. We have no reason to assume that the effects of the different predictors would be different in the different hospitals, so fit a random intercept model including the random intercept of hospital-ID. Once the model is built, note the model coefficients and the confidence intervals of the coefficients for all fixed effect predictors, and compare them to the ones obtained in the 3 assignment.
 
 Also, compute the variance explained by the fixed effect predictors using marginal R^2^, and the variance explained by the fixed and random effect terms combined using conditional R^2^. Now use the model coefficients obtained on data file A to predict pain in datafile B.
 
-__IMPORTANT:__ Do not fit the regression models on data file B (don’t re-train your models), just use the regression equation you derived based on datafile A. These regression equations should be applied on the new data (datafile B), to predict pain.
+**IMPORTANT:** Do not fit the regression models on data file B (don’t re-train your models), just use the regression equation you derived based on datafile A. These regression equations should be applied on the new data (datafile B), to predict pain.
 
-Now compute the variance explained by the model on datafile B. You can do this by using the formula: __1 - (RSS / TSS) = R^2__. Compare this R^2^ to the marginal and conditional R^2^ values computed for the model on datafile A. 
+Now compute the variance explained by the model on datafile B. You can do this by using the formula: **1 - (RSS / TSS) = R\^2**. Compare this R^2^ to the marginal and conditional R^2^ values computed for the model on datafile A.
 
 # What to report
 
-Report the model coefficients and the confidence intervals of the coefficients for each fixed effect predictor obtained on data file A in a table. 
+Report the model coefficients and the confidence intervals of the coefficients for each fixed effect predictor obtained on data file A in a table.
 
 Report the variance components for the fixed effects, the random intercept, and the residuals (from the model on data file A). Also report the marginal R^2^ and the conditional R^2^ squared obtained from the model on data file A, and the observed R^2^ of this model for data file B.
 
@@ -57,7 +57,7 @@ Compare the model coefficients and the confidence intervals observed in this ass
 
 Read the datasets used in this assignment. Pay attention to the extensions of the datafiles.
 
-```{r}
+```{r libraries}
 if(!require("tidyverse")) install.packages("tidyverse")
 if(!require("here")) install.packages("here")
 if(!require("haven")) install.packages("haven")
@@ -93,7 +93,7 @@ data_b <- read_sav(here("data", "assignment_4_dataset_B.sav"))
 
 Run an exploratory data analysis (EDA) to investigate the dataset.
 
-```{r}
+```{r eda}
 variables = c("pain", "age", "weight", "STAI_trait", "pain_cat", "mindfulness", "cortisol_serum", "cortisol_saliva", "IQ", "household_income")
 
 
@@ -115,12 +115,16 @@ for (i in variables){
 
 # Plot all distributions together
 all_distributions = age_distribution + weight_distribution + IQ_distribution + household_income_distribution + pain_distribution + pain_cat_distribution + STAI_trait_distribution + mindfulness_distribution + cortisol_serum_distribution + cortisol_saliva_distribution + plot_layout(ncol = 3, axis_titles = "collect_y")
+
 # Save plot
 ggsave(here("assignment_4_materials", "all_distributions.png"))
 
 # Distributions seem fine
+```
 
 # Summary statistics of each variable
+
+```{r eda_summary}
 summary_stats <- data.frame()
 
 for (s in variables) {
@@ -153,15 +157,14 @@ for (s in variables) {
 
 # Show summary statistics
 View(summary_stats)
-
-
 ```
 
 ## Correct coding errors
 
 If you find values in the dataset during the EDA, that are not correct based on the provided descriptions of the variables of the dataset please correct them here.
 
-```{r}
+```{r data_cleaning}
+# Coding error 1:
 # ID, sex, and hospital are character vectors instead of factor
 
 data_a_clean = data_a |> 
@@ -174,7 +177,7 @@ is.integer(data_a_clean$ID)
 is.factor(data_a_clean$hospital)
 levels(data_a_clean$sex)
 
-
+# Coding error 2:
 # Household income has negative values
 
 data_a_clean = data_a_clean |> 
@@ -195,24 +198,25 @@ data_a_clean |>
 
 ## Fit linear mixed effect model on Data A
 
-```{r}
+```{r model_a}
+# Fit the model
 model_a = lmer(pain ~ pain_cat + stai + mindfulness + cortisol_serum + age + sex + (1|hospital), data = data_a_clean)
 
+# Summarize the model
 summary(model_a)
 r.squaredGLMM(model_a)
 coef(model_a)
 confint(model_a)
 
-
-
+# Plot the model coefficients
 model_coefficients = sjPlot::plot_model(model_a,
                    show.values = TRUE, value.size = 3, value.offset = 0.3, vline.color = "black")
 
 ggsave(here("assignment_4_materials", "model_coefficients.png"))
 
 # Checking assumptions
-
 check_model(model_a, verbose = TRUE)
+
 ### Seems that no assumptions have been violated, still, I will investigate the normality and homogeneity of variance assumptions further
 
 ## Constant variance
@@ -237,6 +241,107 @@ write.csv(
   here("assignment_4_materials", "model_results.csv"),
   row.names = FALSE
 )
+
+```
+
+## Check fit for Data B
+
+```{r model_b}
+data_b_clean = data_b |> 
+  rename(stai = STAI_trait) |> 
+  mutate(ID = as.integer(str_remove(ID, "ID_")),
+         hospital = as.factor(str_remove(hospital, "hospital_")),
+         sex = as.factor(str_to_lower(sex)))
+
+prediction_b <- predict(model_a, newdata = data_b_clean, allow.new.levels = T)
+
+residuals_b <- data_b_clean$pain - prediction_b
+
+# RSS
+RSS <- sum(residuals_b^2)
+
+# TSS
+TSS <- sum((data_b_clean$pain - mean(data_b_clean$pain))^2)
+
+# R² on data_B
+R2_B <- 1 - (RSS/TSS)
+R2_B
+
+
+```
+
+## Report neatly
+
+```{r report}
+fixed_tbl <- broom::tidy(model_a, conf.int = TRUE)
+
+fixed_sentence <- fixed_tbl %>%
+  mutate(formatted = sprintf("%s = %.3f (95%% CI [%.3f, %.3f])",
+                             term, estimate, conf.low, conf.high)) %>%
+  pull(formatted) %>%
+  paste(collapse = "; ")
+
+var_fixed <- var(predict(model_a, re.form = NA))
+
+vc <- as.data.frame(VarCorr(model_a))
+
+rand_rows <- vc %>% filter(grp != "Residual")
+if(nrow(rand_rows) >= 1) {
+  rand_int_var <- rand_rows$vcov[1]
+  rand_int_name <- rand_rows$grp[1]
+} else {
+  rand_int_var <- NA_real_
+  rand_int_name <- NA_character_
+}
+resid_var <- sigma(model_a)^2
+
+
+r2_vals <- tryCatch(r.squaredGLMM(model_a), error = function(e) NA)
+if(!is.na(r2_vals[1])) {
+  r2_marginal    <- r2_vals[1]
+  r2_conditional <- r2_vals[2]
+} else {
+  r2_marginal <- NA_real_
+  r2_conditional <- NA_real_
+}
+
+
+response_name <- as.character(formula(model_a))[2]
+preds_B <- predict(model_a, newdata = data_b_clean, allow.new.levels = TRUE)
+obs_vals <- data_b_clean[[response_name]]
+if(length(preds_B) == length(obs_vals) && !any(is.na(obs_vals))) {
+  R2_B <- cor(obs_vals, preds_B)^2
+} else {
+  R2_B <- NA_real_
+}
+
+
+fixed_sentence       <- fixed_sentence
+var_fixed_fmt        <- sprintf("%.4f", var_fixed)
+rand_int_var_fmt     <- if(!is.na(rand_int_var)) sprintf("%.4f", rand_int_var) else "NA"
+rand_int_name        <- rand_int_name
+resid_var_fmt        <- sprintf("%.4f", resid_var)
+r2_marginal_fmt      <- if(!is.na(r2_marginal)) sprintf("%.3f", r2_marginal) else "NA"
+r2_conditional_fmt   <- if(!is.na(r2_conditional)) sprintf("%.3f", r2_conditional) else "NA"
+R2_B_fmt             <- if(!is.na(R2_B)) sprintf("%.3f", R2_B) else "NA"
+
+```
+
+We fitted a linear mixed-effect model on **data file A**. The fixed-effect estimates (with 95% CIs) were: `r fixed_sentence`. The variance of the fixed-effect linear predictor was `r var_fixed_fmt`. The estimated variance of the random intercept for group `r rand_int_name` was `r rand_int_var_fmt`, and the residual variance was `r resid_var_fmt`. The marginal R² (fixed effects only) was `r r2_marginal_fmt`, while the conditional R² (fixed + random effects) was `r r2_conditional_fmt`. When the model fitted on data file A was applied to **data file B**, the observed R² was `r R2_B_fmt`.
+
+# Tables of model results
+
+```{r}
+tidy(model_a, conf.int = TRUE)
+tab_model(model_a)
+```
+
+## Discussion
+
+```{r }
+# I do not know what Lab 2 refers to. I will assume that assignment 3 from previous year is meant.
+
+# Compare performance of two models on data A
 
 model_results_old = read_csv("https://raw.githubusercontent.com/DianovicsZsimi/elte-ppk-r-course-r_data_analysis-23_24_1/refs/heads/main/tab.csv", col_names = TRUE)
 
@@ -274,42 +379,3 @@ ggplot(combined, aes(x = estimate, y = term, color = model)) +
 
 # Probably due to controlling for between-hospital random effects, the mixed effect model has more confidence, leading to smaller CI ranges and a higher intercept value.
 ```
-
-
-## Check fit for Data B
-
-```{r}
-data_b_clean = data_b |> 
-  rename(stai = STAI_trait) |> 
-  mutate(ID = as.integer(str_remove(ID, "ID_")),
-         hospital = as.factor(str_remove(hospital, "hospital_")),
-         sex = as.factor(str_to_lower(sex)))
-
-prediction_b <- predict(model_a, newdata = data_b_clean, allow.new.levels = T)
-
-residuals_b <- data_b_clean$pain - prediction_b
-
-# RSS
-RSS <- sum(residuals_b^2)
-
-# TSS
-TSS <- sum((data_b_clean$pain - mean(data_b_clean$pain))^2)
-
-# R² on data_B
-R2_B <- 1 - (RSS/TSS)
-R2_B
-
-r.squaredGLMM(model_a)
-tab_model(model_a)
-```
-
-## Report neatly
-
-## Discussion
-
-## Fixes
-
-```{r}
-# explore hypothesized connections visually
-```
-
