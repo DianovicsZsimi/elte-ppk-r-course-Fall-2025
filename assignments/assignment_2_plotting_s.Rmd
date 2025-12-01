@@ -105,24 +105,48 @@ Notes:
 -   The point size is 2, . The theme is set to light.
 
 ```{r}
-data_task_3 |> 
+data_task_3_setup = data_task_3 |> 
+  group_by(state, mode) |> 
+  mutate(
+            total_commutes = sum(n, na.rm = TRUE)
+            ) |>
+  select(state, mode, total_commutes, state_region, state_abb) |>
+  distinct() |> 
   group_by(state) |> 
-  summarise(total_bike = sum(bike, na.rm = TRUE),
-            total_foot = sum(foot, na.rm = TRUE)) |> 
-  ggplot(aes(x = total_bike, y = total_foot)) +
-  geom_point(size = 2, color = "steelblue") +
+  mutate(has_pair = if_else(state %in% (state[mode == "Bike"]) 
+                                & state %in% (state[mode == "Walk"]), TRUE, FALSE)) |> 
+  filter(has_pair == TRUE) |> 
+  ungroup() |> 
+  select(-has_pair) |> 
+  pivot_wider(names_from = mode, values_from = total_commutes)
+
+
+data_task_3_setup |>
+  ggplot(aes(x = Walk, 
+             y = Bike,
+             color = state_region)) +
+  geom_point(size = 2) +
+  geom_text(aes(label = state_abb), size = 4, color = "black") +
   scale_x_log10(labels = scales::comma_format()) +
-  scale_y_log10(labels = scales::comma_format()) +
+  scale_y_log10(
+  limits = c(100, NA),        # ensure 100 is included
+  breaks = c(100, 1000, 10000, 100000),
+  labels = scales::comma_format()
+) +
   theme_light() +
-  labs(title = "Commuting to work by bike vs on foot in the US by state",
-       x = "Total bike commutes",
-       y = "Total foot commutes") +
-  theme(plot.title = element_text(size = 12),
+  labs(title = "Title number of people walking vs. biking to work in each USA state",
+       x = "Number of ppl walking to work (log N)",
+       y = "Number of ppl biking to work (log N)",
+       color = "State region") +
+  theme(legend.position = "right",
+        plot.title = element_text(size = 12),
         axis.text.x = element_text(size = 12),
         axis.text.y = element_text(size = 12),
-        axis.title.y = element_text(size = 12),
-        axis.title.x = element_text(size = 12)
+        axis.title.y = element_text(size = 12)
         )
+  
 
 ggsave(here("assignments", "assignment_2_plots", "task_3_commute.png"), width = 8, height = 6, dpi = 200)
+
+# y axis starts from 100
 ```
