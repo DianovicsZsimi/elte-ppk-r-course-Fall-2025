@@ -20,6 +20,12 @@ You will have to create 3 plots based on the datasets and instructions detailed 
 knitr::opts_chunk$set(echo = FALSE)
 library(tidyverse)
 library(tidytuesdayR)
+library(here)
+here::i_am("README.md")
+
+data_task_1 <- read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/refs/heads/main/data/2020/2020-09-22/expeditions.csv")
+data_task_2 <- read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/refs/heads/main/data/2019/2019-02-19/phd_by_field.csv")
+data_task_3 <- read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/refs/heads/main/data/2019/2019-11-05/commute.csv")
 ```
 
 ## Task 1: Climbing expeditions
@@ -31,6 +37,27 @@ The 2020-09-22 TidyTueday datasets are about climbing expeditions. From the thre
 -   The bar colors use the viridis palette and light theme.
 
 ```{r}
+data_task_1 |> 
+  mutate(peak_name = forcats::fct_lump(peak_name, n = 15)) |>
+  filter(peak_name != "Other") |>
+  mutate(peak_name = forcats::fct_reorder(peak_name, peak_name, .fun = length)) |> 
+  group_by(season, peak_name) |>
+  ggplot(aes(x = peak_name, fill = season)) +
+  geom_bar(aes(fill = season), show.legend = T) +
+  coord_flip() +
+  scale_fill_viridis_d() +
+  theme_light() +
+  labs(title = "The 15 most popular peaks stacked by season of expedition",
+       y = "Number of expeditions") +
+  theme(legend.position = "bottom",
+        axis.title.y = element_blank(),
+        plot.title = element_text(size = 12),
+        axis.text.x = element_text(size = 12),
+        axis.title.x = element_text(size = 12),
+        axis.text = element_text(size = 12)
+        )
+
+ggsave(here("assignments", "assignment_2_plots", "task_1_expeditions.png"), width = 8, height = 6, dpi = 200)
 
 ```
 
@@ -45,7 +72,26 @@ Notes:
 -   The line size is 1.2, the colors are from the brewer "Dark2" palette. The theme is set to minimal.
 
 ```{r}
+data_task_2 |> 
+  group_by(broad_field, year) |> 
+  summarise(total_phds = sum(n_phds, na.rm = TRUE)) |> 
+  ggplot(aes(x = year, y = total_phds, color = broad_field)) +
+  geom_line(size = 1.2) +
+  scale_x_continuous(breaks = scales::pretty_breaks()) +
+  scale_y_continuous(labels = scales::comma_format()) +
+  scale_color_brewer(palette = "Dark2") +
+  theme_minimal() +
+  labs(title = "Number of awarded Ph.D.-s in the US by year",
+       color = "Broad field") +
+  theme(legend.position = "right",
+        plot.title = element_text(size = 12),
+        axis.text.x = element_text(size = 12),
+        axis.text = element_text(size = 12),
+        axis.title.y = element_blank(),
+        axis.title.x = element_blank()
+        )
 
+ggsave(here("assignments", "assignment_2_plots", "task_2_phds_awarded.png"), width = 8, height = 6, dpi = 200)
 ```
 
 ## Task 3: Commute in the US
@@ -59,5 +105,24 @@ Notes:
 -   The point size is 2, . The theme is set to light.
 
 ```{r}
+data_task_3 |> 
+  group_by(state) |> 
+  summarise(total_bike = sum(bike, na.rm = TRUE),
+            total_foot = sum(foot, na.rm = TRUE)) |> 
+  ggplot(aes(x = total_bike, y = total_foot)) +
+  geom_point(size = 2, color = "steelblue") +
+  scale_x_log10(labels = scales::comma_format()) +
+  scale_y_log10(labels = scales::comma_format()) +
+  theme_light() +
+  labs(title = "Commuting to work by bike vs on foot in the US by state",
+       x = "Total bike commutes",
+       y = "Total foot commutes") +
+  theme(plot.title = element_text(size = 12),
+        axis.text.x = element_text(size = 12),
+        axis.text.y = element_text(size = 12),
+        axis.title.y = element_text(size = 12),
+        axis.title.x = element_text(size = 12)
+        )
 
+ggsave(here("assignments", "assignment_2_plots", "task_3_commute.png"), width = 8, height = 6, dpi = 200)
 ```
